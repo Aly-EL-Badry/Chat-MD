@@ -61,17 +61,38 @@ def format_description(request):
     Professional, energetic, and encouraging. usage of emojis in headers is allowed to make it friendly.
     """
 
-    try:
-        response = client.models.generate_content(
-            model="gemini-2.5-flash-lite",
-            contents=prompt,
-        )
-        return Response({"markdown": response.text}, status=status.HTTP_200_OK)
-    except Exception as e:
-        return Response(
-            {"detail": f"Failed to generate the response, {e}"},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+    models = [
+        "gemini-2.5-flash-lite",
+        "gemini-2.5-flash",
+        "gemini-3-flash-preview",
+    ]
+
+    last_error = None
+
+    for model_name in models:
+        try:
+            print(f"Trying model: {model_name}")
+
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+            )
+
+            return Response(
+                {"markdown": response.text},
+                status=status.HTTP_200_OK
+            )
+
+        except Exception as e:
+            print(f"Model {model_name} failed. Trying next...")
+            last_error = e
+
+    # If all models fail
+    return Response(
+        {"error": str(last_error)},
+        status=status.HTTP_400_BAD_REQUEST
+    )
+
 
 @api_view(['GET'])
 def health(request):
